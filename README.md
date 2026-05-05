@@ -1,21 +1,17 @@
 # typed-evals
 
-A TypeScript-first eval framework for LLM apps. Define evals, run them through vitest, track regressions and improvements across iterations.
+TypeScript evals for LLM apps. Define evals with a typed API, run them through vitest, store every run in SQLite, browse them in a UI, diff them from the CLI.
 
 > [!WARNING]
 > v0.0.1. The name `typed-evals` is a placeholder. APIs may change. Not yet published to npm.
 
-## What it does
+## What's in the box
 
-Building agents and prompts is iterative — you tweak a prompt, change a model, restructure a tool call, and you want to know whether things got better or worse. typed-evals is for that loop:
-
-- A **typed API** (`defineEval`) for declaring datasets, tasks, and named scorers
-- A **vitest-based runner** so evals run alongside your tests with parallelism, file discovery, and watch mode for free
-- A **SQLite history** of every run so you can compare any two
-- A **React UI** with score-trend charts, version markers, and per-row inspection
-- An **agent-friendly CLI** that emits JSON, scriptable for autonomous iteration loops
-
-The differentiator is the comparison story: tag intentional iterations as **versions** (with a note like `"switched to claude-haiku-4.5"`), and every delta the UI and CLI show you is computed against the previous version, not the previous noise run.
+- `defineEval` — typed API for datasets, tasks, named scorers
+- A vitest reporter that captures per-row results to SQLite as evals run
+- A React UI with score-over-time charts and per-row inspection
+- A CLI: `run`, `dev`, `ui`, `show`, `diff`, `list` — all read-side commands emit JSON
+- Versioning: tag a run with a note (`--note "switched to haiku-4.5"`) and deltas are computed against the previous tagged version
 
 ## Install
 
@@ -81,9 +77,9 @@ defineEval<TInput, TOutput>({
 })
 ```
 
-- **Named scorers**: `scorers` is a record (not an array), so each scorer has a stable identity across runs — necessary for "scorer X regressed" deltas.
-- **Scorer return shape**: a scorer can return either a `number` or `{ score: number, metadata?: unknown }`. Metadata (e.g. an LLM judge's rationale) is preserved per row and surfaced in the UI on click.
-- **Data is a function**: lazy, can be async, can read files / call APIs.
+- **Named scorers**: `scorers` is a record, so each scorer has a stable identity across runs (used for per-scorer deltas).
+- **Scorer return**: `number` or `{ score: number, metadata?: unknown }`. Metadata is stored per row and shown in the UI on click.
+- **Data is a function**: lazy, async-capable.
 
 ### Convention
 
@@ -126,13 +122,32 @@ typed-evals diff prev-version || revert_changes              # auto-revert on re
 typed-evals show latest --full | jq '.evals[].results[]'     # inspect rows
 ```
 
-**A skill for AI coding agents** ships with this package at [`skills/typed-evals/SKILL.md`](./skills/typed-evals/SKILL.md). Point your agent (Claude Code, Cursor, etc.) at it and the agent learns the iteration workflow — when to tag versions, how to read regressions, which jq snippets to reach for. The skill triggers on requests like "improve my prompt", "fix the regression", or "iterate on this eval" when typed-evals is present in the project.
+A skill for AI coding agents ships at [`skills/typed-evals/SKILL.md`](./skills/typed-evals/SKILL.md). Point your agent (Claude Code, Cursor, etc.) at it for the iteration workflow — when to tag versions, how to inspect regressions, useful jq snippets.
 
 CLI exit codes:
 
 - `run` — `0` if all rows passed, `1` if any failed
 - `diff` — `0` if no scorer regressed (delta > `-0.001`), `1` otherwise
 - `show` — `0` on success, `2` if the ref is not found
+
+## CI: gating on regression
+
+Use `diff` against a named version to fail the build on regression:
+
+```bash
+# after a green run on main:
+typed-evals run --note "release-2.4"
+
+# in PR CI:
+typed-evals diff release-2.4
+# exit 0 = no scorer regressed
+# exit 1 = at least one scorer dropped
+```
+
+`prev-version` works the same way against whatever the latest tagged run happens to be.
+
+> [!NOTE]
+> Single-run deltas of LLM-based scorers carry sampling noise. Small drops (< ~0.05) may not be real regressions. Trial-count averaging is on the roadmap.
 
 ## Config
 
@@ -162,9 +177,9 @@ Each run produces a row in `.typed-evals/runs.db` (SQLite, schema-migrated autom
 - A `runs` row: id, started/finished timestamps, duration, optional `note`
 - A `eval_results` row per (data row × eval), with input/output/expected/scores/duration
 
-A run with a non-empty `note` is a **version**. The UI defaults the score chart and Δ-vs-prev-version calculations to versions, so day-to-day noise runs don't drown out your actual iterations.
+A run with a non-empty `note` is a **version**. The UI's score chart and `diff prev-version` use versions as the comparison baseline.
 
-You can tag a run after the fact in the UI (inline note editor on each run), or at runtime via `--note "..."`.
+Tag at runtime with `--note "..."`, or after the fact via the inline note editor on each run in the UI.
 
 ## Storage
 
@@ -173,13 +188,10 @@ You can tag a run after the fact in the UI (inline note editor on each run), or 
 - Schema migrations are versioned and applied on first connection per process; re-running them is a no-op
 - Inspect directly: `sqlite3 .typed-evals/runs.db`
 
-## What's missing (yet)
+## Not yet
 
-This is v0.0.1 — explicit non-goals so far:
-
-- No score-threshold gating (`--threshold 0.85` is on the roadmap)
-- No trial-count / variance handling for non-deterministic scorers (`trialCount`)
-- No cross-run row alignment by input hash (planned for the diff view)
-- No trace / token-cost integration (looking at this through a separate observability tool)
+- Trial-count / variance handling for non-deterministic scorers
+- Cross-run row alignment by input hash in the diff output
+- Trace / token-cost integration (deferred — handled by separate observability tools)
 
 PRs and issues welcome once the name and shape stabilize.
