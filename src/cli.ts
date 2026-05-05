@@ -1,23 +1,45 @@
 #!/usr/bin/env node
+import { watch } from "node:fs/promises";
 import { defineCommand, runMain } from "citty";
 import { startVitest } from "vitest/node";
 import { EvalReporter } from "./core/reporter.js";
+import { defaultDbPath, SqliteStorage } from "./core/storage.js";
 import { startUiServer } from "./ui/server.js";
 
+interface RunOptions {
+  pattern?: string;
+  note?: string;
+  watch?: boolean;
+}
+
+async function runOnce(options: RunOptions = {}): Promise<number> {
+  const ctx = await startVitest("test", [], {
+    watch: options.watch ?? false,
+    include: ["**/*.eval.?(c|m)[jt]s?(x)"],
+    exclude: ["node_modules", "dist"],
+    reporters: ["default", new EvalReporter({ note: options.note })],
+    ...(options.pattern ? { testNamePattern: options.pattern } : {}),
+  });
+
+  if (!ctx) return 1;
+  if (options.watch) return 0;
+
+  const failed = ctx.state.getCountOfFailedTests();
+  await ctx.close();
+  return failed === 0 ? 0 : 1;
+}
+
 const runCommand = defineCommand({
-  meta: {
-    name: "run",
-    description: "Run evals",
-  },
+  meta: { name: "run", description: "Run evals" },
   args: {
     pattern: {
       type: "positional",
       required: false,
-      description: "Filter evals by name pattern",
+      description: "Filter evals by name regex",
     },
     watch: {
       type: "boolean",
-      description: "Run in watch mode",
+      description: "Run in watch mode (vitest)",
       default: false,
     },
     note: {
@@ -26,40 +48,93 @@ const runCommand = defineCommand({
     },
   },
   async run({ args }) {
-    const ctx = await startVitest("test", [], {
+    const code = await runOnce({
+      pattern: args.pattern,
+      note: args.note,
       watch: args.watch,
-      include: ["**/*.eval.?(c|m)[jt]s?(x)"],
-      exclude: ["node_modules", "dist"],
-      reporters: ["default", new EvalReporter({ note: args.note })],
-      ...(args.pattern ? { testNamePattern: args.pattern } : {}),
     });
-
-    if (!ctx) {
-      process.exit(1);
-    }
-
-    if (!args.watch) {
-      const failed = ctx.state.getCountOfFailedTests();
-      await ctx.close();
-      process.exit(failed === 0 ? 0 : 1);
-    }
+    if (!args.watch) process.exit(code);
   },
 });
 
 const uiCommand = defineCommand({
-  meta: {
-    name: "ui",
-    description: "Start the UI server",
-  },
+  meta: { name: "ui", description: "Start the UI server" },
   args: {
-    port: {
-      type: "string",
-      description: "Port to serve on",
-      default: "3939",
-    },
+    port: { type: "string", description: "Port", default: "3939" },
   },
   async run({ args }) {
     await startUiServer({ port: Number(args.port) });
+  },
+});
+
+const devCommand = defineCommand({
+  meta: {
+    name: "dev",
+    description: "Watch eval files + serve UI; re-run on save",
+  },
+  args: {
+    port: { type: "string", description: "UI port", default: "3939" },
+  },
+  async run({ args }) {
+    const cwd = process.cwd();
+    const storage = new SqliteStorage(defaultDbPath(cwd));
+    const existingRuns = storage.getRuns().length;
+    storage.close();
+
+    await startUiServer({ port: Number(args.port) });
+
+    if (existingRuns === 0) {
+      console.log("typed-evals: no runs yet — populating once.");
+      await runOnce();
+    } else {
+      console.log(
+        `typed-evals: ${existingRuns} existing run${existingRuns === 1 ? "" : "s"} — watching for changes.`,
+      );
+    }
+
+    let running = false;
+    let queued = false;
+    let timer: NodeJS.Timeout | null = null;
+
+    async function trigger() {
+      if (running) {
+        queued = true;
+        return;
+      }
+      running = true;
+      try {
+        do {
+          queued = false;
+          console.log("typed-evals: running…");
+          await runOnce();
+        } while (queued);
+      } catch (err) {
+        console.error("typed-evals: run failed:", err);
+      } finally {
+        running = false;
+      }
+    }
+
+    function schedule() {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(trigger, 150);
+    }
+
+    const evalFile = /\.eval\.(c|m)?[jt]sx?$/;
+    const ignore = /(^|\/)(node_modules|dist|dist-ui|\.typed-evals|\.git)(\/|$)/;
+
+    try {
+      const watcher = watch(cwd, { recursive: true });
+      for await (const event of watcher) {
+        const name = event.filename ?? "";
+        if (ignore.test(name)) continue;
+        if (!evalFile.test(name)) continue;
+        schedule();
+      }
+    } catch (err) {
+      console.error("typed-evals: watcher error:", err);
+      process.exit(1);
+    }
   },
 });
 
@@ -72,6 +147,7 @@ const main = defineCommand({
   subCommands: {
     run: runCommand,
     ui: uiCommand,
+    dev: devCommand,
   },
 });
 
