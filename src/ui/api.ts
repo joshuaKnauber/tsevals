@@ -1,8 +1,8 @@
 import { SqliteStorage, defaultDbPath } from "../core/storage.js";
 import type { RunArtifact } from "../core/types.js";
 
-export async function getRuns(cwd: string = process.cwd()): Promise<RunArtifact[]> {
-  const storage = new SqliteStorage(defaultDbPath(cwd));
+export async function getRuns(dbPath?: string): Promise<RunArtifact[]> {
+  const storage = new SqliteStorage(dbPath ?? defaultDbPath());
   try {
     return storage.getRuns();
   } finally {
@@ -13,9 +13,9 @@ export async function getRuns(cwd: string = process.cwd()): Promise<RunArtifact[
 export async function setRunNote(
   runId: string,
   note: string | null,
-  cwd: string = process.cwd(),
+  dbPath?: string,
 ): Promise<void> {
-  const storage = new SqliteStorage(defaultDbPath(cwd));
+  const storage = new SqliteStorage(dbPath ?? defaultDbPath());
   try {
     storage.setNote(runId, note);
   } finally {

@@ -1,5 +1,12 @@
 export { defineEval } from "./core/define.js";
 export { runEval } from "./core/runner.js";
+export {
+  defineConfig,
+  loadConfig,
+  resolveDbPath,
+  type LoadedConfig,
+  type TypedEvalsConfig,
+} from "./core/config.js";
 export { EvalReporter, type EvalReporterOptions } from "./core/reporter.js";
 export { SqliteStorage, defaultDbPath } from "./core/storage.js";
 export {

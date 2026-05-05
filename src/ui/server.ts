@@ -13,6 +13,7 @@ export interface UiServerOptions {
   port?: number;
   staticDir?: string;
   cwd?: string;
+  dbPath?: string;
 }
 
 const NOTE_ROUTE = /^\/api\/runs\/([^/]+)\/note$/;
@@ -34,13 +35,14 @@ function resolveStaticDir(): string {
 export async function startUiServer(options: UiServerOptions = {}): Promise<void> {
   const port = options.port ?? 3939;
   const cwd = options.cwd ?? process.cwd();
+  const dbPath = options.dbPath;
   const staticDir = options.staticDir ?? resolveStaticDir();
 
   const server = createServer(async (req, res) => {
     const url = req.url ?? "/";
 
     if (url === "/api/runs" && req.method === "GET") {
-      const runs = await getRuns(cwd);
+      const runs = await getRuns(dbPath);
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify(runs));
       return;
@@ -51,7 +53,7 @@ export async function startUiServer(options: UiServerOptions = {}): Promise<void
       const runId = decodeURIComponent(noteMatch[1]!);
       try {
         const body = await readJson<{ note: string | null }>(req);
-        await setRunNote(runId, normalizeNote(body.note), cwd);
+        await setRunNote(runId, normalizeNote(body.note), dbPath);
         res.writeHead(200, { "content-type": "application/json" });
         res.end(JSON.stringify({ ok: true }));
       } catch (err) {

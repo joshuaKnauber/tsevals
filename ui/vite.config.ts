@@ -1,8 +1,20 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
+import { loadConfig, resolveDbPath } from "../src/core/config.js";
 import { getRuns, setRunNote } from "../src/ui/api.js";
 
 const NOTE_PATH = /^\/([^/]+)\/note$/;
+
+let cachedDbPath: Promise<string> | null = null;
+function getDbPath(): Promise<string> {
+  if (!cachedDbPath) {
+    cachedDbPath = (async () => {
+      const loaded = await loadConfig(process.cwd());
+      return resolveDbPath(loaded, process.cwd());
+    })();
+  }
+  return cachedDbPath;
+}
 
 const apiPlugin: Plugin = {
   name: "typed-evals-api",
@@ -11,7 +23,7 @@ const apiPlugin: Plugin = {
       const subpath = req.url ?? "/";
 
       if (subpath === "/" && req.method === "GET") {
-        const runs = await getRuns(process.cwd());
+        const runs = await getRuns(await getDbPath());
         res.setHeader("content-type", "application/json");
         res.end(JSON.stringify(runs));
         return;
@@ -30,7 +42,7 @@ const apiPlugin: Plugin = {
             typeof body.note === "string" && body.note.trim()
               ? body.note.trim()
               : null;
-          await setRunNote(runId, note, process.cwd());
+          await setRunNote(runId, note, await getDbPath());
           res.setHeader("content-type", "application/json");
           res.end(JSON.stringify({ ok: true }));
         } catch (err) {

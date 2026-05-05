@@ -10,18 +10,22 @@ import {
 export interface EvalReporterOptions {
   dbPath?: string;
   note?: string;
+  quiet?: boolean;
 }
 
 export class EvalReporter implements Reporter {
   private readonly storage: SqliteStorage;
   private readonly note: string | null;
+  private readonly quiet: boolean;
   private startedAtMs = 0;
   private startedAtIso = "";
   private readonly resultsByEval = new Map<string, EvalResultSubmittedPayload[]>();
+  public lastRunId: string | null = null;
 
   constructor(options: EvalReporterOptions = {}) {
     this.storage = new SqliteStorage(options.dbPath ?? defaultDbPath());
     this.note = options.note?.trim() ? options.note.trim() : null;
+    this.quiet = options.quiet ?? false;
   }
 
   onTestRunStart(): void {
@@ -64,7 +68,10 @@ export class EvalReporter implements Reporter {
 
     this.storage.saveRun(artifact);
     this.storage.close();
-    const noteSuffix = this.note ? ` (version: ${this.note})` : "";
-    console.log(`\ntyped-evals: saved run ${runId}${noteSuffix}`);
+    this.lastRunId = runId;
+    if (!this.quiet) {
+      const noteSuffix = this.note ? ` (version: ${this.note})` : "";
+      console.log(`\ntyped-evals: saved run ${runId}${noteSuffix}`);
+    }
   }
 }

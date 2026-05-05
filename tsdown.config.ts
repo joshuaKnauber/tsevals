@@ -7,6 +7,6 @@ export default defineConfig({
   dts: true,
   clean: true,
   deps: {
-    neverBundle: [/^vitest($|\/)/],
+    neverBundle: [/^vitest($|\/)/, "jiti"],
   },
 });
