@@ -21,3 +21,21 @@ export interface EvalResult {
   scores: number[];
   durationMs: number;
 }
+
+export const EVAL_RESULT_STARTED = "typed-evals:result-started" as const;
+export const EVAL_RESULT_SUBMITTED = "typed-evals:result-submitted" as const;
+
+export interface EvalResultStartedPayload {
+  evalName: string;
+  input: unknown;
+  expected?: unknown;
+}
+
+export interface EvalResultSubmittedPayload {
+  evalName: string;
+  input: unknown;
+  output: unknown;
+  expected?: unknown;
+  scores: number[];
+  durationMs: number;
+}

@@ -21,7 +21,7 @@
     "build": "tsdown",
     "dev": "tsdown --watch",
     "typecheck": "tsc --noEmit",
-    "example": "tsx examples/basic.eval.ts"
+    "evals": "tsx src/cli.ts run"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
