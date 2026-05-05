@@ -34,6 +34,7 @@ function classify(text: string): Sentiment {
 
 const sentiment = defineEval<string, Sentiment>({
   name: "sentiment",
+  trialCount: 3,
   data: () => [
     { input: "I love this product, it's amazing!", expected: "positive" },
     { input: "Worst purchase ever, total waste of money.", expected: "negative" },

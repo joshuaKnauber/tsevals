@@ -1,6 +1,7 @@
 export interface ScoreEntry {
   score: number;
   metadata?: unknown;
+  trials?: number[];
 }
 
 export type ScorerResult = number | ScoreEntry;
@@ -21,6 +22,13 @@ export interface Eval<TInput, TOutput> {
   data: () => DataItem<TInput, TOutput>[] | Promise<DataItem<TInput, TOutput>[]>;
   task: (input: TInput) => TOutput | Promise<TOutput>;
   scorers: Record<string, Scorer<TInput, TOutput>>;
+  /**
+   * Run the full task+scorers pipeline this many times per data row, then
+   * average the score per scorer. Defaults to 1. Use this when the task or
+   * scorers carry sampling noise (e.g. LLM calls with temperature > 0,
+   * LLM-as-judge scorers).
+   */
+  trialCount?: number;
 }
 
 export interface EvalResult {

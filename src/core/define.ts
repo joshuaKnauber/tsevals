@@ -23,6 +23,30 @@ export function defineEval<TInput, TOutput>(
   return config;
 }
 
+function aggregateTrialScores<TOutput>(
+  trials: { output: TOutput; scores: Record<string, ScoreEntry> }[],
+  trialCount: number,
+): Record<string, ScoreEntry> {
+  const scorerNames = new Set<string>();
+  for (const t of trials) for (const k of Object.keys(t.scores)) scorerNames.add(k);
+
+  const result: Record<string, ScoreEntry> = {};
+  for (const name of scorerNames) {
+    const values = trials.map((t) => t.scores[name]?.score ?? 0);
+    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    if (trialCount > 1) {
+      result[name] = { score: mean, trials: values };
+    } else {
+      const entry = trials[0]?.scores[name];
+      result[name] =
+        entry?.metadata !== undefined
+          ? { score: mean, metadata: entry.metadata }
+          : { score: mean };
+    }
+  }
+  return result;
+}
+
 function registerVitestTests<TInput, TOutput>(
   config: Eval<TInput, TOutput>,
 ): void {
@@ -31,6 +55,8 @@ function registerVitestTests<TInput, TOutput>(
     for (const item of data) {
       const label =
         typeof item.input === "string" ? item.input : JSON.stringify(item.input);
+
+      const trialCount = Math.max(1, config.trialCount ?? 1);
 
       test(label, async ({ annotate }) => {
         const startedPayload: EvalResultStartedPayload = {
@@ -44,29 +70,39 @@ function registerVitestTests<TInput, TOutput>(
         });
 
         const startedAt = performance.now();
-        const output = await config.task(item.input);
+        const trialResults: { output: TOutput; scores: Record<string, ScoreEntry> }[] = [];
+
+        for (let trial = 0; trial < trialCount; trial++) {
+          const output = await config.task(item.input);
+          const scoreEntries = await Promise.all(
+            Object.entries(config.scorers).map(
+              async ([name, scorer]) =>
+                [
+                  name,
+                  normalizeScore(
+                    await scorer({
+                      input: item.input,
+                      output,
+                      expected: item.expected,
+                    }),
+                  ),
+                ] as const,
+            ),
+          );
+          trialResults.push({
+            output,
+            scores: Object.fromEntries(scoreEntries),
+          });
+        }
+
         const durationMs = performance.now() - startedAt;
-        const scoreEntries = await Promise.all(
-          Object.entries(config.scorers).map(
-            async ([name, scorer]) =>
-              [
-                name,
-                normalizeScore(
-                  await scorer({
-                    input: item.input,
-                    output,
-                    expected: item.expected,
-                  }),
-                ),
-              ] as const,
-          ),
-        );
-        const scores: Record<string, ScoreEntry> = Object.fromEntries(scoreEntries);
+        const scores = aggregateTrialScores(trialResults, trialCount);
+        const representativeOutput = trialResults[trialResults.length - 1]!.output;
 
         const submittedPayload: EvalResultSubmittedPayload = {
           evalName: config.name,
           input: item.input,
-          output,
+          output: representativeOutput,
           expected: item.expected,
           scores,
           durationMs,

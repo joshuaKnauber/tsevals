@@ -5,21 +5,24 @@ export async function runEval<TInput, TOutput>(
 ): Promise<EvalResult> {
   const start = performance.now();
   const data = await evaluation.data();
+  const trialCount = Math.max(1, evaluation.trialCount ?? 1);
   const scoresByName = new Map<string, number[]>();
 
   for (const item of data) {
-    const output = await evaluation.task(item.input);
-    for (const [name, scorer] of Object.entries(evaluation.scorers)) {
-      const result = normalizeScore(
-        await scorer({
-          input: item.input,
-          output,
-          expected: item.expected,
-        }),
-      );
-      const arr = scoresByName.get(name) ?? [];
-      arr.push(result.score);
-      scoresByName.set(name, arr);
+    for (let trial = 0; trial < trialCount; trial++) {
+      const output = await evaluation.task(item.input);
+      for (const [name, scorer] of Object.entries(evaluation.scorers)) {
+        const result = normalizeScore(
+          await scorer({
+            input: item.input,
+            output,
+            expected: item.expected,
+          }),
+        );
+        const arr = scoresByName.get(name) ?? [];
+        arr.push(result.score);
+        scoresByName.set(name, arr);
+      }
     }
   }
 

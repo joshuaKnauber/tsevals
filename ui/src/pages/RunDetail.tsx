@@ -181,21 +181,34 @@ export function RunDetail({
                     </span>
                   </Cell>
                 </tr>
-                {expandedScorer && expandedEntry?.metadata !== undefined && (
+                {expandedScorer && expandedEntry && (
                   <tr>
                     <td
                       colSpan={totalCols}
                       className="px-3 py-3 border-b border-hairline bg-elevated/50"
                     >
-                      <div className="flex items-baseline gap-3 mb-2">
+                      <div className="flex items-baseline gap-3 mb-2 flex-wrap">
                         <span className="text-[10.5px] uppercase tracking-wider text-muted font-medium">
-                          {expandedScorer} metadata
+                          {expandedScorer}
                         </span>
                         <span className="font-mono text-[11.5px] text-muted tabular-nums">
-                          score {expandedEntry.score.toFixed(2)}
+                          mean {expandedEntry.score.toFixed(3)}
                         </span>
+                        {expandedEntry.trials && (
+                          <span className="font-mono text-[11.5px] text-muted tabular-nums">
+                            stddev {stddev(expandedEntry.trials).toFixed(3)}
+                          </span>
+                        )}
                       </div>
-                      <MetadataView data={expandedEntry.metadata} />
+                      {expandedEntry.trials && (
+                        <TrialsView trials={expandedEntry.trials} />
+                      )}
+                      {expandedEntry.metadata !== undefined &&
+                        expandedEntry.metadata !== null && (
+                          <div className={expandedEntry.trials ? "mt-3" : ""}>
+                            <MetadataView data={expandedEntry.metadata} />
+                          </div>
+                        )}
                     </td>
                   </tr>
                 )}
@@ -219,16 +232,18 @@ function ScoreCell({
 }) {
   const c = scoreClass(entry.score);
   const hasMeta = entry.metadata !== undefined && entry.metadata !== null;
+  const hasTrials = Array.isArray(entry.trials) && entry.trials.length > 1;
+  const expandable = hasMeta || hasTrials;
 
   return (
     <td className="px-3 py-3 align-top border-b border-hairline text-right">
       <button
         type="button"
         className={`inline-flex items-center justify-end gap-1.5 bg-transparent border-0 p-0 font-sans text-[12.5px] ${
-          hasMeta ? "cursor-pointer hover:text-fg" : "cursor-default"
+          expandable ? "cursor-pointer hover:text-fg" : "cursor-default"
         }`}
-        onClick={() => hasMeta && onToggle()}
-        disabled={!hasMeta}
+        onClick={() => expandable && onToggle()}
+        disabled={!expandable}
       >
         <span
           className={`inline-block w-1.5 h-1.5 rounded-full ${DOT_COLOR[c]}`}
@@ -236,7 +251,12 @@ function ScoreCell({
         <span className={`font-mono tabular-nums ${SCORE_COLOR[c]}`}>
           {entry.score.toFixed(2)}
         </span>
-        {hasMeta && (
+        {hasTrials && (
+          <span className="text-faint text-[10px] font-mono">
+            ×{entry.trials!.length}
+          </span>
+        )}
+        {expandable && (
           <span className="text-faint text-[10px]">
             {isExpanded ? "▾" : "▸"}
           </span>
@@ -244,6 +264,40 @@ function ScoreCell({
       </button>
     </td>
   );
+}
+
+function TrialsView({ trials }: { trials: number[] }) {
+  return (
+    <div className="flex gap-1.5 flex-wrap">
+      {trials.map((value, i) => {
+        const c = scoreClass(value);
+        return (
+          <span
+            key={i}
+            className="inline-flex items-center gap-1 bg-canvas border border-hairline rounded px-2 py-1 text-[11px] tabular-nums"
+          >
+            <span className="text-faint font-mono text-[10px]">
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <span
+              className={`inline-block w-1 h-1 rounded-full ${DOT_COLOR[c]}`}
+            />
+            <span className={`font-mono ${SCORE_COLOR[c]}`}>
+              {value.toFixed(2)}
+            </span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function stddev(values: number[]): number {
+  if (values.length < 2) return 0;
+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  const variance =
+    values.reduce((s, v) => s + (v - mean) ** 2, 0) / (values.length - 1);
+  return Math.sqrt(variance);
 }
 
 function MetadataView({ data }: { data: unknown }) {

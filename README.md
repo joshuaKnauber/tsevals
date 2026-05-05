@@ -80,6 +80,7 @@ defineEval<TInput, TOutput>({
 - **Named scorers**: `scorers` is a record, so each scorer has a stable identity across runs (used for per-scorer deltas).
 - **Scorer return**: `number` or `{ score: number, metadata?: unknown }`. Metadata is stored per row and shown in the UI on click.
 - **Data is a function**: lazy, async-capable.
+- **`trialCount`**: optional integer. Re-runs the full task+scorers pipeline N times per row and averages the score. Use when the task or scorers carry sampling noise (LLM-as-judge, `temperature > 0`). Per-trial values are stored alongside the mean and surfaced in the UI.
 
 ### Convention
 
@@ -147,7 +148,7 @@ typed-evals diff release-2.4
 `prev-version` works the same way against whatever the latest tagged run happens to be.
 
 > [!NOTE]
-> Single-run deltas of LLM-based scorers carry sampling noise. Small drops (< ~0.05) may not be real regressions. Trial-count averaging is on the roadmap.
+> LLM-based scorers carry sampling noise. Use `trialCount` on the eval definition (see [API](#api)) to average across multiple trials before relying on a single delta.
 
 ## Config
 
@@ -187,11 +188,3 @@ Tag at runtime with `--note "..."`, or after the fact via the inline note editor
 - Backed by `node:sqlite` (Node 22+ built-in, zero native deps)
 - Schema migrations are versioned and applied on first connection per process; re-running them is a no-op
 - Inspect directly: `sqlite3 .typed-evals/runs.db`
-
-## Not yet
-
-- Trial-count / variance handling for non-deterministic scorers
-- Cross-run row alignment by input hash in the diff output
-- Trace / token-cost integration (deferred — handled by separate observability tools)
-
-PRs and issues welcome once the name and shape stabilize.
