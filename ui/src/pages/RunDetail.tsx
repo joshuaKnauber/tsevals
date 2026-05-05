@@ -1,6 +1,8 @@
+import { Fragment, useState } from "react";
 import type {
   EvalArtifact,
   RunArtifact,
+  ScoreEntry,
 } from "../../../src/core/types.js";
 import { NoteEditor } from "../components/NoteEditor.js";
 import {
@@ -24,6 +26,11 @@ const DOT_COLOR: Record<string, string> = {
   bad: "bg-error",
 };
 
+interface ExpandedKey {
+  rowIdx: number;
+  scorerName: string;
+}
+
 export function RunDetail({
   run,
   evalArtifact,
@@ -36,6 +43,20 @@ export function RunDetail({
   const score = meanOfEval(evalArtifact);
   const perScorer = scorerMeans(evalArtifact);
   const scorerNames = Object.keys(perScorer).sort();
+  const [expanded, setExpanded] = useState<ExpandedKey | null>(null);
+
+  const isExpanded = (rowIdx: number, scorerName: string) =>
+    expanded?.rowIdx === rowIdx && expanded?.scorerName === scorerName;
+
+  const toggle = (rowIdx: number, scorerName: string) => {
+    setExpanded((curr) =>
+      curr?.rowIdx === rowIdx && curr?.scorerName === scorerName
+        ? null
+        : { rowIdx, scorerName },
+    );
+  };
+
+  const totalCols = 3 + scorerNames.length + 1;
 
   return (
     <div className="flex flex-col gap-6">
@@ -61,11 +82,7 @@ export function RunDetail({
           </div>
         </div>
         <div className="flex gap-8">
-          <Stat
-            label="score"
-            value={score.toFixed(2)}
-            cls={scoreClass(score)}
-          />
+          <Stat label="score" value={score.toFixed(2)} cls={scoreClass(score)} />
           <Stat
             label="rows"
             value={String(evalArtifact.results.length)}
@@ -115,61 +132,164 @@ export function RunDetail({
           </tr>
         </thead>
         <tbody>
-          {evalArtifact.results.map((result, i) => (
-            <tr
-              key={i}
-              className="hover:[&_td]:bg-elevated transition-colors"
-            >
-              <Cell>
-                <pre className="m-0 font-mono text-[12px] leading-snug whitespace-pre-wrap break-words max-w-[40ch]">
-                  {stringify(result.input)}
-                </pre>
-              </Cell>
-              <Cell>
-                <pre className="m-0 font-mono text-[12px] leading-snug whitespace-pre-wrap break-words max-w-[40ch]">
-                  {stringify(result.output)}
-                </pre>
-              </Cell>
-              <Cell muted>
-                <pre className="m-0 font-mono text-[12px] leading-snug whitespace-pre-wrap break-words max-w-[40ch]">
-                  {stringify(result.expected)}
-                </pre>
-              </Cell>
-              {scorerNames.map((name) => {
-                const v = result.scores[name];
-                if (v === undefined) {
-                  return (
-                    <Cell key={name} align="right" muted>
-                      —
-                    </Cell>
-                  );
-                }
-                const c = scoreClass(v);
-                return (
-                  <Cell key={name} align="right">
-                    <div className="inline-flex items-center justify-end gap-1.5">
-                      <span
-                        className={`inline-block w-1.5 h-1.5 rounded-full ${DOT_COLOR[c]}`}
-                      />
-                      <span
-                        className={`font-mono tabular-nums ${SCORE_COLOR[c]}`}
-                      >
-                        {v.toFixed(2)}
-                      </span>
-                    </div>
+          {evalArtifact.results.map((result, i) => {
+            const expandedScorer =
+              expanded?.rowIdx === i ? expanded.scorerName : null;
+            const expandedEntry = expandedScorer
+              ? result.scores[expandedScorer]
+              : undefined;
+
+            return (
+              <Fragment key={i}>
+                <tr className="hover:[&_td]:bg-elevated transition-colors">
+                  <Cell>
+                    <pre className="m-0 font-mono text-[12px] leading-snug whitespace-pre-wrap break-words max-w-[40ch]">
+                      {stringify(result.input)}
+                    </pre>
                   </Cell>
-                );
-              })}
-              <Cell align="right" muted>
-                <span className="font-mono text-[11.5px] tabular-nums">
-                  {result.durationMs.toFixed(2)}ms
-                </span>
-              </Cell>
-            </tr>
-          ))}
+                  <Cell>
+                    <pre className="m-0 font-mono text-[12px] leading-snug whitespace-pre-wrap break-words max-w-[40ch]">
+                      {stringify(result.output)}
+                    </pre>
+                  </Cell>
+                  <Cell muted>
+                    <pre className="m-0 font-mono text-[12px] leading-snug whitespace-pre-wrap break-words max-w-[40ch]">
+                      {stringify(result.expected)}
+                    </pre>
+                  </Cell>
+                  {scorerNames.map((name) => {
+                    const entry = result.scores[name];
+                    if (entry === undefined) {
+                      return (
+                        <Cell key={name} align="right" muted>
+                          —
+                        </Cell>
+                      );
+                    }
+                    return (
+                      <ScoreCell
+                        key={name}
+                        entry={entry}
+                        isExpanded={isExpanded(i, name)}
+                        onToggle={() => toggle(i, name)}
+                      />
+                    );
+                  })}
+                  <Cell align="right" muted>
+                    <span className="font-mono text-[11.5px] tabular-nums">
+                      {result.durationMs.toFixed(2)}ms
+                    </span>
+                  </Cell>
+                </tr>
+                {expandedScorer && expandedEntry?.metadata !== undefined && (
+                  <tr>
+                    <td
+                      colSpan={totalCols}
+                      className="px-3 py-3 border-b border-hairline bg-elevated/50"
+                    >
+                      <div className="flex items-baseline gap-3 mb-2">
+                        <span className="text-[10.5px] uppercase tracking-wider text-muted font-medium">
+                          {expandedScorer} metadata
+                        </span>
+                        <span className="font-mono text-[11.5px] text-muted tabular-nums">
+                          score {expandedEntry.score.toFixed(2)}
+                        </span>
+                      </div>
+                      <MetadataView data={expandedEntry.metadata} />
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>
+  );
+}
+
+function ScoreCell({
+  entry,
+  isExpanded,
+  onToggle,
+}: {
+  entry: ScoreEntry;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  const c = scoreClass(entry.score);
+  const hasMeta = entry.metadata !== undefined && entry.metadata !== null;
+
+  return (
+    <td className="px-3 py-3 align-top border-b border-hairline text-right">
+      <button
+        type="button"
+        className={`inline-flex items-center justify-end gap-1.5 bg-transparent border-0 p-0 font-sans text-[12.5px] ${
+          hasMeta ? "cursor-pointer hover:text-fg" : "cursor-default"
+        }`}
+        onClick={() => hasMeta && onToggle()}
+        disabled={!hasMeta}
+      >
+        <span
+          className={`inline-block w-1.5 h-1.5 rounded-full ${DOT_COLOR[c]}`}
+        />
+        <span className={`font-mono tabular-nums ${SCORE_COLOR[c]}`}>
+          {entry.score.toFixed(2)}
+        </span>
+        {hasMeta && (
+          <span className="text-faint text-[10px]">
+            {isExpanded ? "▾" : "▸"}
+          </span>
+        )}
+      </button>
+    </td>
+  );
+}
+
+function MetadataView({ data }: { data: unknown }) {
+  if (typeof data === "string") {
+    return <p className="m-0 text-[12.5px] leading-relaxed">{data}</p>;
+  }
+  if (
+    typeof data === "object" &&
+    data !== null &&
+    !Array.isArray(data)
+  ) {
+    const entries = Object.entries(data as Record<string, unknown>);
+    return (
+      <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-1.5 m-0 text-[12.5px]">
+        {entries.map(([k, v]) => (
+          <Fragment key={k}>
+            <dt className="text-muted font-mono text-[11.5px] uppercase tracking-wider self-baseline">
+              {k}
+            </dt>
+            <dd className="m-0 leading-relaxed break-words">
+              <MetadataValue value={v} />
+            </dd>
+          </Fragment>
+        ))}
+      </dl>
+    );
+  }
+  return (
+    <pre className="m-0 font-mono text-[12px] leading-snug whitespace-pre-wrap break-words">
+      {JSON.stringify(data, null, 2)}
+    </pre>
+  );
+}
+
+function MetadataValue({ value }: { value: unknown }) {
+  if (value === null) return <span className="text-faint">null</span>;
+  if (typeof value === "string") return <span>{value}</span>;
+  if (typeof value === "number" || typeof value === "boolean") {
+    return (
+      <span className="font-mono tabular-nums">{String(value)}</span>
+    );
+  }
+  return (
+    <pre className="m-0 font-mono text-[11.5px] leading-snug whitespace-pre-wrap break-words">
+      {JSON.stringify(value, null, 2)}
+    </pre>
   );
 }
 

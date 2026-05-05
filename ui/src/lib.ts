@@ -42,13 +42,17 @@ export function groupByEval(runs: RunArtifact[]): EvalSummary[] {
 }
 
 export function meanOfEval(evalArtifact: EvalArtifact): number {
-  const all = evalArtifact.results.flatMap((r) => Object.values(r.scores));
+  const all = evalArtifact.results.flatMap((r) =>
+    Object.values(r.scores).map((s) => s.score),
+  );
   return all.length ? all.reduce((a, b) => a + b, 0) / all.length : 0;
 }
 
 export function meanOfEntries(entries: EvalRunEntry[]): number {
   const all = entries.flatMap((e) =>
-    e.evalArtifact.results.flatMap((r) => Object.values(r.scores)),
+    e.evalArtifact.results.flatMap((r) =>
+      Object.values(r.scores).map((s) => s.score),
+    ),
   );
   return all.length ? all.reduce((a, b) => a + b, 0) / all.length : 0;
 }
@@ -56,9 +60,9 @@ export function meanOfEntries(entries: EvalRunEntry[]): number {
 export function scorerMeans(evalArtifact: EvalArtifact): Record<string, number> {
   const sums = new Map<string, { sum: number; count: number }>();
   for (const result of evalArtifact.results) {
-    for (const [name, value] of Object.entries(result.scores)) {
+    for (const [name, entry] of Object.entries(result.scores)) {
       const acc = sums.get(name) ?? { sum: 0, count: 0 };
-      acc.sum += value;
+      acc.sum += entry.score;
       acc.count += 1;
       sums.set(name, acc);
     }

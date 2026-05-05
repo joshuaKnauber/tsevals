@@ -57,9 +57,21 @@ const sentiment = defineEval<string, Sentiment>({
   scorers: {
     exactMatch: ({ output, expected }) => (output === expected ? 1 : 0),
     llmJudge: ({ output, expected }) => {
-      const base = output === expected ? 0.85 : 0.35;
+      const matched = output === expected;
+      const base = matched ? 0.85 : 0.35;
       const noise = (Math.random() - 0.5) * 0.3;
-      return Math.max(0, Math.min(1, base + noise));
+      const score = Math.max(0, Math.min(1, base + noise));
+      const rationale = matched
+        ? `Output "${output}" matches the expected label.`
+        : `Output "${output}" doesn't match expected "${expected}". The text contained mixed signals.`;
+      return {
+        score,
+        metadata: {
+          rationale,
+          confidence: matched ? 0.9 : 0.55,
+          model: "mock-judge-v1",
+        },
+      };
     },
   },
 });

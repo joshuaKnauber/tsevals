@@ -284,7 +284,9 @@ function Stat({
 
 function summarize(summary: EvalSummary) {
   const allScores = summary.entries.flatMap((e) =>
-    e.evalArtifact.results.flatMap((r) => Object.values(r.scores)),
+    e.evalArtifact.results.flatMap((r) =>
+      Object.values(r.scores).map((s) => s.score),
+    ),
   );
   const avg = allScores.length
     ? allScores.reduce((a, b) => a + b, 0) / allScores.length

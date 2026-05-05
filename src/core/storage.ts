@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { applyMigrations } from "./migrations.js";
-import type { EvalArtifact, RunArtifact } from "./types.js";
+import type { EvalArtifact, RunArtifact, ScoreEntry } from "./types.js";
 
 interface RunRow {
   id: string;
@@ -101,7 +101,7 @@ export class SqliteStorage {
           input: JSON.parse(row.input),
           output: JSON.parse(row.output),
           expected: row.expected !== null ? JSON.parse(row.expected) : undefined,
-          scores: JSON.parse(row.scores) as Record<string, number>,
+          scores: JSON.parse(row.scores) as Record<string, ScoreEntry>,
           durationMs: row.duration_ms,
         });
       }

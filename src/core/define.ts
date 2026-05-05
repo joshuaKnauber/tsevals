@@ -2,9 +2,11 @@ import { describe, test } from "vitest";
 import {
   EVAL_RESULT_STARTED,
   EVAL_RESULT_SUBMITTED,
+  normalizeScore,
   type Eval,
   type EvalResultStartedPayload,
   type EvalResultSubmittedPayload,
+  type ScoreEntry,
 } from "./types.js";
 
 function isInsideVitest(): boolean {
@@ -49,11 +51,17 @@ function registerVitestTests<TInput, TOutput>(
             async ([name, scorer]) =>
               [
                 name,
-                await scorer({ input: item.input, output, expected: item.expected }),
+                normalizeScore(
+                  await scorer({
+                    input: item.input,
+                    output,
+                    expected: item.expected,
+                  }),
+                ),
               ] as const,
           ),
         );
-        const scores: Record<string, number> = Object.fromEntries(scoreEntries);
+        const scores: Record<string, ScoreEntry> = Object.fromEntries(scoreEntries);
 
         const submittedPayload: EvalResultSubmittedPayload = {
           evalName: config.name,

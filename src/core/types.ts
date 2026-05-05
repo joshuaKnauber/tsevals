@@ -1,8 +1,15 @@
+export interface ScoreEntry {
+  score: number;
+  metadata?: unknown;
+}
+
+export type ScorerResult = number | ScoreEntry;
+
 export type Scorer<TInput, TOutput> = (args: {
   input: TInput;
   output: TOutput;
   expected?: TOutput;
-}) => number | Promise<number>;
+}) => ScorerResult | Promise<ScorerResult>;
 
 export interface DataItem<TInput, TOutput> {
   input: TInput;
@@ -36,8 +43,12 @@ export interface EvalResultSubmittedPayload {
   input: unknown;
   output: unknown;
   expected?: unknown;
-  scores: Record<string, number>;
+  scores: Record<string, ScoreEntry>;
   durationMs: number;
+}
+
+export function normalizeScore(result: ScorerResult): ScoreEntry {
+  return typeof result === "number" ? { score: result } : result;
 }
 
 export interface EvalArtifact {

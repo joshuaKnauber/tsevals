@@ -1,4 +1,4 @@
-import type { Eval, EvalResult } from "./types.js";
+import { normalizeScore, type Eval, type EvalResult } from "./types.js";
 
 export async function runEval<TInput, TOutput>(
   evaluation: Eval<TInput, TOutput>,
@@ -10,13 +10,15 @@ export async function runEval<TInput, TOutput>(
   for (const item of data) {
     const output = await evaluation.task(item.input);
     for (const [name, scorer] of Object.entries(evaluation.scorers)) {
-      const score = await scorer({
-        input: item.input,
-        output,
-        expected: item.expected,
-      });
+      const result = normalizeScore(
+        await scorer({
+          input: item.input,
+          output,
+          expected: item.expected,
+        }),
+      );
       const arr = scoresByName.get(name) ?? [];
-      arr.push(score);
+      arr.push(result.score);
       scoresByName.set(name, arr);
     }
   }
