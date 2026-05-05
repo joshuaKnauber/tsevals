@@ -5,18 +5,25 @@ export async function runEval<TInput, TOutput>(
 ): Promise<EvalResult> {
   const start = performance.now();
   const data = await evaluation.data();
-  const scores: number[] = [];
+  const scoresByName = new Map<string, number[]>();
 
   for (const item of data) {
     const output = await evaluation.task(item.input);
-    for (const scorer of evaluation.scorers) {
+    for (const [name, scorer] of Object.entries(evaluation.scorers)) {
       const score = await scorer({
         input: item.input,
         output,
         expected: item.expected,
       });
-      scores.push(score);
+      const arr = scoresByName.get(name) ?? [];
+      arr.push(score);
+      scoresByName.set(name, arr);
     }
+  }
+
+  const scores: Record<string, number> = {};
+  for (const [name, values] of scoresByName) {
+    scores[name] = values.reduce((a, b) => a + b, 0) / values.length;
   }
 
   return {

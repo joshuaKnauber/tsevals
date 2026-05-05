@@ -7,9 +7,9 @@ const basic = defineEval({
     { input: "world", expected: "world" },
   ],
   task: (input) => input,
-  scorers: [
-    ({ output, expected }) => (output === expected ? 1 : 0),
-  ],
+  scorers: {
+    exactMatch: ({ output, expected }) => (output === expected ? 1 : 0),
+  },
 });
 
 const result = await runEval(basic);

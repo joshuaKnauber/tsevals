@@ -13,12 +13,12 @@ export interface Eval<TInput, TOutput> {
   name: string;
   data: () => DataItem<TInput, TOutput>[] | Promise<DataItem<TInput, TOutput>[]>;
   task: (input: TInput) => TOutput | Promise<TOutput>;
-  scorers: Scorer<TInput, TOutput>[];
+  scorers: Record<string, Scorer<TInput, TOutput>>;
 }
 
 export interface EvalResult {
   name: string;
-  scores: number[];
+  scores: Record<string, number>;
   durationMs: number;
 }
 
@@ -36,6 +36,6 @@ export interface EvalResultSubmittedPayload {
   input: unknown;
   output: unknown;
   expected?: unknown;
-  scores: number[];
+  scores: Record<string, number>;
   durationMs: number;
 }

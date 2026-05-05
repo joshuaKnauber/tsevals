@@ -44,11 +44,16 @@ function registerVitestTests<TInput, TOutput>(
         const startedAt = performance.now();
         const output = await config.task(item.input);
         const durationMs = performance.now() - startedAt;
-        const scores = await Promise.all(
-          config.scorers.map((s) =>
-            s({ input: item.input, output, expected: item.expected }),
+        const scoreEntries = await Promise.all(
+          Object.entries(config.scorers).map(
+            async ([name, scorer]) =>
+              [
+                name,
+                await scorer({ input: item.input, output, expected: item.expected }),
+              ] as const,
           ),
         );
+        const scores: Record<string, number> = Object.fromEntries(scoreEntries);
 
         const submittedPayload: EvalResultSubmittedPayload = {
           evalName: config.name,
