@@ -36,7 +36,10 @@ export const MIGRATIONS: Migration[] = [
   },
 ];
 
-export function applyMigrations(db: DatabaseSync): string[] {
+export function applyMigrations(
+  db: DatabaseSync,
+  migrations: Migration[] = MIGRATIONS,
+): string[] {
   db.exec(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
       id TEXT PRIMARY KEY,
@@ -55,7 +58,7 @@ export function applyMigrations(db: DatabaseSync): string[] {
   );
 
   const newlyApplied: string[] = [];
-  for (const m of MIGRATIONS) {
+  for (const m of migrations) {
     if (applied.has(m.id)) continue;
     db.exec("BEGIN");
     try {

@@ -25,6 +25,7 @@
     "dev": "tsdown --watch",
     "ui:dev": "vite --config ui/vite.config.ts",
     "typecheck": "tsc --noEmit && tsc -p ui/tsconfig.json",
+    "test": "vitest run",
     "evals": "tsx src/cli.ts run",
     "ui": "tsx src/cli.ts ui"
   },
