@@ -2,6 +2,7 @@
 import { defineCommand, runMain } from "citty";
 import { startVitest } from "vitest/node";
 import { EvalReporter } from "./core/reporter.js";
+import { startUiServer } from "./ui/server.js";
 
 const runCommand = defineCommand({
   meta: {
@@ -44,10 +45,17 @@ const runCommand = defineCommand({
 const uiCommand = defineCommand({
   meta: {
     name: "ui",
-    description: "Start the UI (not implemented)",
+    description: "Start the UI server",
   },
-  run() {
-    console.log("typed-evals: ui (not implemented)");
+  args: {
+    port: {
+      type: "string",
+      description: "Port to serve on",
+      default: "3939",
+    },
+  },
+  async run({ args }) {
+    await startUiServer({ port: Number(args.port) });
   },
 });
 

@@ -39,3 +39,16 @@ export interface EvalResultSubmittedPayload {
   scores: Record<string, number>;
   durationMs: number;
 }
+
+export interface EvalArtifact {
+  name: string;
+  results: EvalResultSubmittedPayload[];
+}
+
+export interface RunArtifact {
+  runId: string;
+  startedAt: string;
+  finishedAt: string;
+  durationMs: number;
+  evals: EvalArtifact[];
+}

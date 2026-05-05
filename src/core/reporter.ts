@@ -1,37 +1,24 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import type { Reporter, TestCase } from "vitest/node";
 import type { TestAnnotation } from "@vitest/runner";
+import { SqliteStorage, defaultDbPath } from "./storage.js";
 import {
   EVAL_RESULT_SUBMITTED,
   type EvalResultSubmittedPayload,
+  type RunArtifact,
 } from "./types.js";
 
 export interface EvalReporterOptions {
-  outputDir?: string;
-}
-
-export interface RunArtifact {
-  runId: string;
-  startedAt: string;
-  finishedAt: string;
-  durationMs: number;
-  evals: EvalArtifact[];
-}
-
-export interface EvalArtifact {
-  name: string;
-  results: EvalResultSubmittedPayload[];
+  dbPath?: string;
 }
 
 export class EvalReporter implements Reporter {
-  private readonly outputDir: string;
+  private readonly storage: SqliteStorage;
   private startedAtMs = 0;
   private startedAtIso = "";
   private readonly resultsByEval = new Map<string, EvalResultSubmittedPayload[]>();
 
   constructor(options: EvalReporterOptions = {}) {
-    this.outputDir = options.outputDir ?? join(process.cwd(), ".typed-evals", "runs");
+    this.storage = new SqliteStorage(options.dbPath ?? defaultDbPath());
   }
 
   onTestRunStart(): void {
@@ -57,7 +44,7 @@ export class EvalReporter implements Reporter {
     this.resultsByEval.set(payload.evalName, list);
   }
 
-  async onTestRunEnd(): Promise<void> {
+  onTestRunEnd(): void {
     const finishedAtMs = Date.now();
     const runId = this.startedAtIso.replace(/[:.]/g, "-");
     const artifact: RunArtifact = {
@@ -71,9 +58,8 @@ export class EvalReporter implements Reporter {
       })),
     };
 
-    await mkdir(this.outputDir, { recursive: true });
-    const filepath = join(this.outputDir, `${runId}.json`);
-    await writeFile(filepath, JSON.stringify(artifact, null, 2));
-    console.log(`\ntyped-evals: wrote ${filepath}`);
+    this.storage.saveRun(artifact);
+    this.storage.close();
+    console.log(`\ntyped-evals: saved run ${runId}`);
   }
 }
