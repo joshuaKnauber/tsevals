@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { startVitest } from "vitest/node";
+import { EvalReporter } from "./core/reporter.js";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -19,6 +20,7 @@ async function runCommand(rest: string[]): Promise<void> {
     watch,
     include: ["**/*.eval.?(c|m)[jt]s?(x)"],
     exclude: ["node_modules", "dist"],
+    reporters: ["default", new EvalReporter()],
     ...(testNamePattern ? { testNamePattern } : {}),
   });
 
