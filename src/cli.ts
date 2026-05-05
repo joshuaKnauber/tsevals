@@ -1,54 +1,66 @@
 #!/usr/bin/env node
+import { defineCommand, runMain } from "citty";
 import { startVitest } from "vitest/node";
 import { EvalReporter } from "./core/reporter.js";
 
-const args = process.argv.slice(2);
-const command = args[0];
+const runCommand = defineCommand({
+  meta: {
+    name: "run",
+    description: "Run evals",
+  },
+  args: {
+    pattern: {
+      type: "positional",
+      required: false,
+      description: "Filter evals by name pattern",
+    },
+    watch: {
+      type: "boolean",
+      description: "Run in watch mode",
+      default: false,
+    },
+  },
+  async run({ args }) {
+    const ctx = await startVitest("test", [], {
+      watch: args.watch,
+      include: ["**/*.eval.?(c|m)[jt]s?(x)"],
+      exclude: ["node_modules", "dist"],
+      reporters: ["default", new EvalReporter()],
+      ...(args.pattern ? { testNamePattern: args.pattern } : {}),
+    });
 
-function printUsage(): void {
-  console.log(`usage:
-  typed-evals run [pattern] [--watch]   run evals (optionally filter by name)
-  typed-evals ui                        start the UI (not implemented)`);
-}
+    if (!ctx) {
+      process.exit(1);
+    }
 
-async function runCommand(rest: string[]): Promise<void> {
-  const watch = rest.includes("--watch");
-  const positional = rest.filter((a) => !a.startsWith("--"));
-  const testNamePattern = positional[0];
+    if (!args.watch) {
+      const failed = ctx.state.getCountOfFailedTests();
+      await ctx.close();
+      process.exit(failed === 0 ? 0 : 1);
+    }
+  },
+});
 
-  const ctx = await startVitest("test", [], {
-    watch,
-    include: ["**/*.eval.?(c|m)[jt]s?(x)"],
-    exclude: ["node_modules", "dist"],
-    reporters: ["default", new EvalReporter()],
-    ...(testNamePattern ? { testNamePattern } : {}),
-  });
-
-  if (!ctx) {
-    process.exit(1);
-  }
-
-  if (!watch) {
-    const failed = ctx.state.getCountOfFailedTests();
-    await ctx.close();
-    process.exit(failed === 0 ? 0 : 1);
-  }
-}
-
-switch (command) {
-  case "run":
-    await runCommand(args.slice(1));
-    break;
-  case "ui":
+const uiCommand = defineCommand({
+  meta: {
+    name: "ui",
+    description: "Start the UI (not implemented)",
+  },
+  run() {
     console.log("typed-evals: ui (not implemented)");
-    break;
-  case undefined:
-  case "help":
-  case "--help":
-  case "-h":
-    printUsage();
-    break;
-  default:
-    console.error(`unknown command: ${command}`);
-    process.exit(1);
-}
+  },
+});
+
+const main = defineCommand({
+  meta: {
+    name: "typed-evals",
+    version: "0.0.1",
+    description: "TypeScript evals: run, inspect, compare.",
+  },
+  subCommands: {
+    run: runCommand,
+    ui: uiCommand,
+  },
+});
+
+runMain(main);
