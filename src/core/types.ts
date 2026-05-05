@@ -51,4 +51,5 @@ export interface RunArtifact {
   finishedAt: string;
   durationMs: number;
   evals: EvalArtifact[];
+  note?: string | null;
 }

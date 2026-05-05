@@ -9,3 +9,16 @@ export async function getRuns(cwd: string = process.cwd()): Promise<RunArtifact[
     storage.close();
   }
 }
+
+export async function setRunNote(
+  runId: string,
+  note: string | null,
+  cwd: string = process.cwd(),
+): Promise<void> {
+  const storage = new SqliteStorage(defaultDbPath(cwd));
+  try {
+    storage.setNote(runId, note);
+  } finally {
+    storage.close();
+  }
+}

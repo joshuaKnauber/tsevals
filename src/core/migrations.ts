@@ -30,6 +30,10 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX idx_runs_started ON runs(started_at);
     `,
   },
+  {
+    id: "002_run_note",
+    up: `ALTER TABLE runs ADD COLUMN note TEXT;`,
+  },
 ];
 
 export function applyMigrations(db: DatabaseSync): string[] {

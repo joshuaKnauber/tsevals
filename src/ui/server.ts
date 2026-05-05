@@ -1,15 +1,21 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { createServer, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { getRuns } from "./api.js";
+import { getRuns, setRunNote } from "./api.js";
 
 export interface UiServerOptions {
   port?: number;
   staticDir?: string;
   cwd?: string;
 }
+
+const NOTE_ROUTE = /^\/api\/runs\/([^/]+)\/note$/;
 
 function resolveStaticDir(): string {
   const here = dirname(fileURLToPath(import.meta.url));
@@ -33,10 +39,25 @@ export async function startUiServer(options: UiServerOptions = {}): Promise<void
   const server = createServer(async (req, res) => {
     const url = req.url ?? "/";
 
-    if (url === "/api/runs") {
+    if (url === "/api/runs" && req.method === "GET") {
       const runs = await getRuns(cwd);
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify(runs));
+      return;
+    }
+
+    const noteMatch = url.match(NOTE_ROUTE);
+    if (noteMatch && req.method === "POST") {
+      const runId = decodeURIComponent(noteMatch[1]!);
+      try {
+        const body = await readJson<{ note: string | null }>(req);
+        await setRunNote(runId, normalizeNote(body.note), cwd);
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (err) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: (err as Error).message }));
+      }
       return;
     }
 
@@ -63,6 +84,20 @@ export async function startUiServer(options: UiServerOptions = {}): Promise<void
       resolve();
     });
   });
+}
+
+async function readJson<T>(req: IncomingMessage): Promise<T> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) {
+    chunks.push(chunk as Buffer);
+  }
+  return JSON.parse(Buffer.concat(chunks).toString("utf-8")) as T;
+}
+
+function normalizeNote(note: unknown): string | null {
+  if (typeof note !== "string") return null;
+  const trimmed = note.trim();
+  return trimmed === "" ? null : trimmed;
 }
 
 function notFound(res: ServerResponse): void {

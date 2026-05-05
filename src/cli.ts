@@ -20,13 +20,17 @@ const runCommand = defineCommand({
       description: "Run in watch mode",
       default: false,
     },
+    note: {
+      type: "string",
+      description: "Tag this run as a version with a note",
+    },
   },
   async run({ args }) {
     const ctx = await startVitest("test", [], {
       watch: args.watch,
       include: ["**/*.eval.?(c|m)[jt]s?(x)"],
       exclude: ["node_modules", "dist"],
-      reporters: ["default", new EvalReporter()],
+      reporters: ["default", new EvalReporter({ note: args.note })],
       ...(args.pattern ? { testNamePattern: args.pattern } : {}),
     });
 

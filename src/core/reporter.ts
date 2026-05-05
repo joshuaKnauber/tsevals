@@ -9,16 +9,19 @@ import {
 
 export interface EvalReporterOptions {
   dbPath?: string;
+  note?: string;
 }
 
 export class EvalReporter implements Reporter {
   private readonly storage: SqliteStorage;
+  private readonly note: string | null;
   private startedAtMs = 0;
   private startedAtIso = "";
   private readonly resultsByEval = new Map<string, EvalResultSubmittedPayload[]>();
 
   constructor(options: EvalReporterOptions = {}) {
     this.storage = new SqliteStorage(options.dbPath ?? defaultDbPath());
+    this.note = options.note?.trim() ? options.note.trim() : null;
   }
 
   onTestRunStart(): void {
@@ -56,10 +59,12 @@ export class EvalReporter implements Reporter {
         name,
         results,
       })),
+      note: this.note,
     };
 
     this.storage.saveRun(artifact);
     this.storage.close();
-    console.log(`\ntyped-evals: saved run ${runId}`);
+    const noteSuffix = this.note ? ` (version: ${this.note})` : "";
+    console.log(`\ntyped-evals: saved run ${runId}${noteSuffix}`);
   }
 }

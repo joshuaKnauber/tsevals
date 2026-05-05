@@ -9,6 +9,7 @@ interface RunRow {
   started_at: string;
   finished_at: string;
   duration_ms: number;
+  note: string | null;
 }
 
 interface ResultRow {
@@ -33,7 +34,7 @@ export class SqliteStorage {
 
   saveRun(artifact: RunArtifact): void {
     const insertRun = this.db.prepare(
-      "INSERT INTO runs (id, started_at, finished_at, duration_ms) VALUES (?, ?, ?, ?)",
+      "INSERT INTO runs (id, started_at, finished_at, duration_ms, note) VALUES (?, ?, ?, ?, ?)",
     );
     const insertResult = this.db.prepare(
       "INSERT INTO eval_results (run_id, eval_name, input, output, expected, scores, duration_ms) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -46,6 +47,7 @@ export class SqliteStorage {
         artifact.startedAt,
         artifact.finishedAt,
         artifact.durationMs,
+        artifact.note ?? null,
       );
       for (const evalArtifact of artifact.evals) {
         for (const result of evalArtifact.results) {
@@ -67,10 +69,16 @@ export class SqliteStorage {
     }
   }
 
+  setNote(runId: string, note: string | null): void {
+    this.db
+      .prepare("UPDATE runs SET note = ? WHERE id = ?")
+      .run(note, runId);
+  }
+
   getRuns(): RunArtifact[] {
     const runs = this.db
       .prepare(
-        "SELECT id, started_at, finished_at, duration_ms FROM runs ORDER BY started_at DESC",
+        "SELECT id, started_at, finished_at, duration_ms, note FROM runs ORDER BY started_at DESC",
       )
       .all() as unknown as RunRow[];
 
@@ -104,6 +112,7 @@ export class SqliteStorage {
         finishedAt: r.finished_at,
         durationMs: r.duration_ms,
         evals: Array.from(evalsByName.values()),
+        note: r.note,
       };
     });
   }
