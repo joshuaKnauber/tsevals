@@ -29,9 +29,13 @@
     "typecheck": "tsc --noEmit && tsc -p ui/tsconfig.json",
     "test": "vitest run",
     "evals": "tsx src/cli.ts run",
-    "ui": "tsx src/cli.ts ui"
+    "ui": "tsx src/cli.ts ui",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "npm run build && changeset publish"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.31.0",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
