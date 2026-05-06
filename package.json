@@ -5,6 +5,23 @@
   "license": "MIT",
   "author": "Joshua Knauber",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joshuaKnauber/tsevals.git"
+  },
+  "bugs": {
+    "url": "https://github.com/joshuaKnauber/tsevals/issues"
+  },
+  "homepage": "https://github.com/joshuaKnauber/tsevals#readme",
+  "keywords": [
+    "evals",
+    "eval",
+    "llm",
+    "vitest",
+    "typescript",
+    "ai",
+    "testing"
+  ],
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "exports": {
