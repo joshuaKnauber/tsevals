@@ -1,6 +1,6 @@
 {
   "name": "tsevals",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "TypeScript evals: typed API, vitest reporter, SQLite history, UI.",
   "license": "MIT",
   "author": "Joshua Knauber",
