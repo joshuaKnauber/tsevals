@@ -14,7 +14,7 @@ export interface EvalReporterOptions {
 }
 
 export class EvalReporter implements Reporter {
-  private readonly storage: SqliteStorage;
+  private readonly dbPath: string;
   private readonly note: string | null;
   private readonly quiet: boolean;
   private startedAtMs = 0;
@@ -23,7 +23,7 @@ export class EvalReporter implements Reporter {
   public lastRunId: string | null = null;
 
   constructor(options: EvalReporterOptions = {}) {
-    this.storage = new SqliteStorage(options.dbPath ?? defaultDbPath());
+    this.dbPath = options.dbPath ?? defaultDbPath();
     this.note = options.note?.trim() ? options.note.trim() : null;
     this.quiet = options.quiet ?? false;
   }
@@ -66,8 +66,12 @@ export class EvalReporter implements Reporter {
       note: this.note,
     };
 
-    this.storage.saveRun(artifact);
-    this.storage.close();
+    const storage = new SqliteStorage(this.dbPath);
+    try {
+      storage.saveRun(artifact);
+    } finally {
+      storage.close();
+    }
     this.lastRunId = runId;
     if (!this.quiet) {
       const noteSuffix = this.note ? ` (version: ${this.note})` : "";

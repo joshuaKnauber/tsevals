@@ -10,7 +10,14 @@ export interface TypedEvalsConfig {
    * (or the cwd if loaded without a config).
    */
   dbPath?: string;
+  /**
+   * Glob pattern(s) used to discover eval files.
+   * Defaults to `**\/*.eval.?(c|m)[jt]s?(x)`.
+   */
+  include?: string | string[];
 }
+
+export const DEFAULT_INCLUDE = ["**/*.eval.?(c|m)[jt]s?(x)"];
 
 const CONFIG_FILES = [
   "tsevals.config.ts",
@@ -67,4 +74,10 @@ export function resolveDbPath(
     return resolve(base, loaded.config.dbPath);
   }
   return join(cwd, ".tsevals", "runs.db");
+}
+
+export function resolveInclude(loaded: LoadedConfig): string[] {
+  const value = loaded.config.include;
+  if (value === undefined) return [...DEFAULT_INCLUDE];
+  return Array.isArray(value) ? [...value] : [value];
 }

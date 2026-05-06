@@ -4,6 +4,8 @@ export {
   defineConfig,
   loadConfig,
   resolveDbPath,
+  resolveInclude,
+  DEFAULT_INCLUDE,
   type LoadedConfig,
   type TypedEvalsConfig,
 } from "./core/config.js";

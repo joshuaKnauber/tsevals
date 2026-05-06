@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { watch } from "node:fs/promises";
 import { defineCommand, runMain } from "citty";
 import { startVitest } from "vitest/node";
 import {
@@ -10,14 +9,23 @@ import {
   summarizeRun,
   type RunSummary,
 } from "./cli/inspect.js";
-import { loadConfig, resolveDbPath } from "./core/config.js";
+import {
+  loadConfig,
+  resolveDbPath,
+  resolveInclude,
+} from "./core/config.js";
 import { EvalReporter } from "./core/reporter.js";
-import { SqliteStorage } from "./core/storage.js";
 import { startUiServer } from "./ui/server.js";
 
-async function getDbPath(): Promise<string> {
+async function getResolvedConfig(): Promise<{
+  dbPath: string;
+  include: string[];
+}> {
   const loaded = await loadConfig(process.cwd());
-  return resolveDbPath(loaded, process.cwd());
+  return {
+    dbPath: resolveDbPath(loaded, process.cwd()),
+    include: resolveInclude(loaded),
+  };
 }
 
 interface RunOptions {
@@ -26,6 +34,7 @@ interface RunOptions {
   watch?: boolean;
   json?: boolean;
   dbPath?: string;
+  include?: string[];
 }
 
 async function runOnce(
@@ -38,7 +47,7 @@ async function runOnce(
   });
   const ctx = await startVitest("test", [], {
     watch: options.watch ?? false,
-    include: ["**/*.eval.?(c|m)[jt]s?(x)"],
+    include: options.include ?? ["**/*.eval.?(c|m)[jt]s?(x)"],
     exclude: ["node_modules", "dist"],
     reporters: options.json ? [reporter] : ["default", reporter],
     silent: options.json ? true : undefined,
@@ -80,13 +89,14 @@ const runCommand = defineCommand({
     },
   },
   async run({ args }) {
-    const dbPath = await getDbPath();
+    const { dbPath, include } = await getResolvedConfig();
     const result = await runOnce({
       pattern: args.pattern,
       note: args.note,
       watch: args.watch,
       json: args.json,
       dbPath,
+      include,
     });
 
     if (args.json && result.runId) {
@@ -122,7 +132,7 @@ const showCommand = defineCommand({
     },
   },
   async run({ args }) {
-    const dbPath = await getDbPath();
+    const { dbPath } = await getResolvedConfig();
     const runs = loadRuns(dbPath);
     const run = resolveRun(runs, args.ref);
     if (!run) {
@@ -153,7 +163,7 @@ const diffCommand = defineCommand({
     },
   },
   async run({ args }) {
-    const dbPath = await getDbPath();
+    const { dbPath } = await getResolvedConfig();
     const runs = loadRuns(dbPath);
     const from = resolveRun(runs, args.from);
     const to = resolveRun(runs, args.to ?? "latest");
@@ -186,7 +196,7 @@ const listCommand = defineCommand({
     },
   },
   async run({ args }) {
-    const dbPath = await getDbPath();
+    const { dbPath } = await getResolvedConfig();
     const limit = Number(args.limit);
     let runs = loadRuns(dbPath);
     if (args.versions) runs = runs.filter(isVersion);
@@ -209,7 +219,7 @@ const uiCommand = defineCommand({
     port: { type: "string", description: "Port", default: "3939" },
   },
   async run({ args }) {
-    const dbPath = await getDbPath();
+    const { dbPath } = await getResolvedConfig();
     await startUiServer({ port: Number(args.port), dbPath });
   },
 });
@@ -223,66 +233,12 @@ const devCommand = defineCommand({
     port: { type: "string", description: "UI port", default: "3939" },
   },
   async run({ args }) {
-    const cwd = process.cwd();
-    const dbPath = await getDbPath();
-    const storage = new SqliteStorage(dbPath);
-    const existingRuns = storage.getRuns().length;
-    storage.close();
+    const { dbPath, include } = await getResolvedConfig();
 
     await startUiServer({ port: Number(args.port), dbPath });
 
-    if (existingRuns === 0) {
-      console.log("tsevals: no runs yet — populating once.");
-      await runOnce({ dbPath });
-    } else {
-      console.log(
-        `tsevals: ${existingRuns} existing run${existingRuns === 1 ? "" : "s"} — watching for changes.`,
-      );
-    }
-
-    let running = false;
-    let queued = false;
-    let timer: NodeJS.Timeout | null = null;
-
-    async function trigger() {
-      if (running) {
-        queued = true;
-        return;
-      }
-      running = true;
-      try {
-        do {
-          queued = false;
-          console.log("tsevals: running…");
-          await runOnce({ dbPath });
-        } while (queued);
-      } catch (err) {
-        console.error("tsevals: run failed:", err);
-      } finally {
-        running = false;
-      }
-    }
-
-    function schedule() {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(trigger, 150);
-    }
-
-    const evalFile = /\.eval\.(c|m)?[jt]sx?$/;
-    const ignore = /(^|\/)(node_modules|dist|dist-ui|\.tsevals|\.git)(\/|$)/;
-
-    try {
-      const watcher = watch(cwd, { recursive: true });
-      for await (const event of watcher) {
-        const name = event.filename ?? "";
-        if (ignore.test(name)) continue;
-        if (!evalFile.test(name)) continue;
-        schedule();
-      }
-    } catch (err) {
-      console.error("tsevals: watcher error:", err);
-      process.exit(1);
-    }
+    const result = await runOnce({ dbPath, include, watch: true });
+    if (result.code !== 0) process.exit(result.code);
   },
 });
 
