@@ -13,11 +13,11 @@ export interface TypedEvalsConfig {
 }
 
 const CONFIG_FILES = [
-  "typed-evals.config.ts",
-  "typed-evals.config.mts",
-  "typed-evals.config.mjs",
-  "typed-evals.config.js",
-  "typed-evals.config.json",
+  "tsevals.config.ts",
+  "tsevals.config.mts",
+  "tsevals.config.mjs",
+  "tsevals.config.js",
+  "tsevals.config.json",
 ];
 
 export function defineConfig(config: TypedEvalsConfig): TypedEvalsConfig {
@@ -66,5 +66,5 @@ export function resolveDbPath(
     const base = loaded.path ? resolve(loaded.path, "..") : cwd;
     return resolve(base, loaded.config.dbPath);
   }
-  return join(cwd, ".typed-evals", "runs.db");
+  return join(cwd, ".tsevals", "runs.db");
 }

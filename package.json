@@ -1,7 +1,9 @@
 {
-  "name": "typed-evals",
+  "name": "tsevals",
   "version": "0.0.1",
-  "description": "TypeScript evals: skeleton API, UI, and CLI.",
+  "description": "TypeScript evals: typed API, vitest reporter, SQLite history, UI.",
+  "license": "MIT",
+  "author": "Joshua Knauber",
   "type": "module",
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
@@ -12,7 +14,7 @@
     }
   },
   "bin": {
-    "typed-evals": "./dist/cli.mjs"
+    "tsevals": "./dist/cli.mjs"
   },
   "files": [
     "dist",

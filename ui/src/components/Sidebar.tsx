@@ -12,7 +12,7 @@ export function Sidebar({
     <aside className="w-[280px] bg-elevated overflow-y-auto py-5 px-2">
       <div className="px-3.5 pb-4">
         <span className="text-[13px] font-medium text-fg tracking-tight">
-          typed-evals
+          tsevals
         </span>
       </div>
       <ul className="list-none m-0 p-0 flex flex-col gap-px">

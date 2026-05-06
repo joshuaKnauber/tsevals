@@ -35,7 +35,7 @@ export function EvalOverview({
   onChange: () => void;
 }) {
   const [filter, setFilter] = useLocalStorage<Filter>(
-    "typed-evals.overview.filter",
+    "tsevals.overview.filter",
     "all",
   );
   const stats = useMemo(() => summarize(summary), [summary]);

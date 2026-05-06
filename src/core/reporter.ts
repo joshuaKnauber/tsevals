@@ -71,7 +71,7 @@ export class EvalReporter implements Reporter {
     this.lastRunId = runId;
     if (!this.quiet) {
       const noteSuffix = this.note ? ` (version: ${this.note})` : "";
-      console.log(`\ntyped-evals: saved run ${runId}${noteSuffix}`);
+      console.log(`\ntsevals: saved run ${runId}${noteSuffix}`);
     }
   }
 }

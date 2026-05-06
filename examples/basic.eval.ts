@@ -1,4 +1,4 @@
-import { defineEval, runEval } from "typed-evals";
+import { defineEval, runEval } from "tsevals";
 
 const basic = defineEval({
   name: "basic",

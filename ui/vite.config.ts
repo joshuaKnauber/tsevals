@@ -17,7 +17,7 @@ function getDbPath(): Promise<string> {
 }
 
 const apiPlugin: Plugin = {
-  name: "typed-evals-api",
+  name: "tsevals-api",
   configureServer(server) {
     server.middlewares.use("/api/runs", async (req, res, next) => {
       const subpath = req.url ?? "/";

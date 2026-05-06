@@ -8,7 +8,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "typed-evals": fileURLToPath(new URL("./src/index.ts", import.meta.url)),
+      "tsevals": fileURLToPath(new URL("./src/index.ts", import.meta.url)),
     },
   },
 });

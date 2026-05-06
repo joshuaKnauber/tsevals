@@ -15,7 +15,7 @@
     "verbatimModuleSyntax": true,
     "noEmit": true,
     "paths": {
-      "typed-evals": ["./src/index.ts"]
+      "tsevals": ["./src/index.ts"]
     }
   },
   "include": ["src/**/*", "examples/**/*", "tsdown.config.ts"]

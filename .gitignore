@@ -1,7 +1,7 @@
 node_modules
 dist
 dist-ui
-.typed-evals
+.tsevals
 .DS_Store
 *.log
 .env

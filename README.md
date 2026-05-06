@@ -1,11 +1,8 @@
-# typed-evals
+# tsevals
 
 TypeScript evals for LLM apps. Define evals with a typed API, run them through vitest, store every run in SQLite, browse them in a UI, diff them from the CLI.
 
-> [!WARNING]
-> v0.0.1. The name `typed-evals` is a placeholder. APIs may change. Not yet published to npm.
-
-## What's in the box
+## What's included
 
 - `defineEval` — typed API for datasets, tasks, named scorers
 - A vitest reporter that captures per-row results to SQLite as evals run
@@ -16,7 +13,7 @@ TypeScript evals for LLM apps. Define evals with a typed API, run them through v
 ## Install
 
 ```bash
-npm install --save-dev typed-evals vitest
+npm install --save-dev tsevals vitest
 ```
 
 > [!NOTE]
@@ -29,7 +26,7 @@ Create an eval file ending in `.eval.ts` and `export default` an eval definition
 
 ```ts
 // examples/sentiment.eval.ts
-import { defineEval } from "typed-evals";
+import { defineEval } from "tsevals";
 
 export default defineEval<string, "positive" | "negative" | "neutral">({
   name: "sentiment",
@@ -55,13 +52,13 @@ export default defineEval<string, "positive" | "negative" | "neutral">({
 Run them:
 
 ```bash
-npx typed-evals run
+npx tsevals run
 ```
 
 Open the UI:
 
 ```bash
-npx typed-evals dev   # watcher + UI on http://localhost:3939
+npx tsevals dev   # watcher + UI on http://localhost:3939
 ```
 
 ## API
@@ -84,19 +81,19 @@ defineEval<TInput, TOutput>({
 
 ### Convention
 
-- Files matching `**/*.eval.{ts,tsx,mts,...}` are picked up by `typed-evals run`.
+- Files matching `**/*.eval.{ts,tsx,mts,...}` are picked up by `tsevals run`.
 - Each file exports an eval as `default`.
 - Eval files coexist with regular `*.test.ts` — vitest's normal test runner ignores `.eval.ts` files.
 
 ## CLI
 
 ```
-typed-evals run    [pattern] [--watch] [--note "..."] [--json]
-typed-evals dev    [--port]
-typed-evals ui     [--port]
-typed-evals show   <id|latest|prev-version> [--full]
-typed-evals diff   <from> [to=latest]
-typed-evals list   [--limit N] [--versions]
+tsevals run    [pattern] [--watch] [--note "..."] [--json]
+tsevals dev    [--port]
+tsevals ui     [--port]
+tsevals show   <id|latest|prev-version> [--full]
+tsevals diff   <from> [to=latest]
+tsevals list   [--limit N] [--versions]
 ```
 
 | Command | Description |
@@ -118,12 +115,12 @@ Refs `latest` and `prev-version` work everywhere a runId is accepted.
 Every read-style command emits JSON, exit codes are meaningful, and the loop is scriptable:
 
 ```bash
-typed-evals run --json | jq '.score'                        # post-change score
-typed-evals diff prev-version || revert_changes              # auto-revert on regression
-typed-evals show latest --full | jq '.evals[].results[]'     # inspect rows
+tsevals run --json | jq '.score'                        # post-change score
+tsevals diff prev-version || revert_changes              # auto-revert on regression
+tsevals show latest --full | jq '.evals[].results[]'     # inspect rows
 ```
 
-A skill for AI coding agents ships at [`skills/typed-evals/SKILL.md`](./skills/typed-evals/SKILL.md). Point your agent (Claude Code, Cursor, etc.) at it for the iteration workflow — when to tag versions, how to inspect regressions, useful jq snippets.
+A skill for AI coding agents ships at [`skills/tsevals/SKILL.md`](./skills/tsevals/SKILL.md). Point your agent (Claude Code, Cursor, etc.) at it for the iteration workflow — when to tag versions, how to inspect regressions, useful jq snippets.
 
 CLI exit codes:
 
@@ -137,10 +134,10 @@ Use `diff` against a named version to fail the build on regression:
 
 ```bash
 # after a green run on main:
-typed-evals run --note "release-2.4"
+tsevals run --note "release-2.4"
 
 # in PR CI:
-typed-evals diff release-2.4
+tsevals diff release-2.4
 # exit 0 = no scorer regressed
 # exit 1 = at least one scorer dropped
 ```
@@ -152,14 +149,14 @@ typed-evals diff release-2.4
 
 ## Config
 
-Optional. Drop a `typed-evals.config.{ts,mts,mjs,js,json}` in your project root.
+Optional. Drop a `tsevals.config.{ts,mts,mjs,js,json}` in your project root.
 
 ```ts
-// typed-evals.config.ts
-import { defineConfig } from "typed-evals";
+// tsevals.config.ts
+import { defineConfig } from "tsevals";
 
 export default defineConfig({
-  dbPath: ".typed-evals/runs.db",
+  dbPath: ".tsevals/runs.db",
 });
 ```
 
@@ -167,13 +164,13 @@ Currently supported keys:
 
 | Key | Default | Notes |
 |---|---|---|
-| `dbPath` | `.typed-evals/runs.db` | Where the SQLite history is stored. Relative paths resolve from the config file's directory. |
+| `dbPath` | `.tsevals/runs.db` | Where the SQLite history is stored. Relative paths resolve from the config file's directory. |
 
 `.ts` configs are loaded via [jiti](https://github.com/unjs/jiti) so you can use TypeScript syntax without a build step. `.mjs` / `.js` use native ESM import; `.json` is parsed directly.
 
 ## How runs work
 
-Each run produces a row in `.typed-evals/runs.db` (SQLite, schema-migrated automatically):
+Each run produces a row in `.tsevals/runs.db` (SQLite, schema-migrated automatically):
 
 - A `runs` row: id, started/finished timestamps, duration, optional `note`
 - A `eval_results` row per (data row × eval), with input/output/expected/scores/duration
@@ -184,7 +181,11 @@ Tag at runtime with `--note "..."`, or after the fact via the inline note editor
 
 ## Storage
 
-- Database: `.typed-evals/runs.db` in the working directory (gitignored by default)
+- Database: `.tsevals/runs.db` in the working directory (gitignored by default)
 - Backed by `node:sqlite` (Node 22+ built-in, zero native deps)
 - Schema migrations are versioned and applied on first connection per process; re-running them is a no-op
-- Inspect directly: `sqlite3 .typed-evals/runs.db`
+- Inspect directly: `sqlite3 .tsevals/runs.db`
+
+## Thanks
+
+The `defineEval` shape and the vitest-reporter approach are heavily inspired by [evalite](https://github.com/mattpocock/evalite). Go check it out.

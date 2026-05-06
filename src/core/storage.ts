@@ -123,5 +123,5 @@ export class SqliteStorage {
 }
 
 export function defaultDbPath(cwd: string = process.cwd()): string {
-  return join(cwd, ".typed-evals", "runs.db");
+  return join(cwd, ".tsevals", "runs.db");
 }

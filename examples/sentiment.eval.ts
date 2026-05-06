@@ -1,4 +1,4 @@
-import { defineEval } from "typed-evals";
+import { defineEval } from "tsevals";
 
 type Sentiment = "positive" | "negative" | "neutral";
 

@@ -232,11 +232,11 @@ const devCommand = defineCommand({
     await startUiServer({ port: Number(args.port), dbPath });
 
     if (existingRuns === 0) {
-      console.log("typed-evals: no runs yet — populating once.");
+      console.log("tsevals: no runs yet — populating once.");
       await runOnce({ dbPath });
     } else {
       console.log(
-        `typed-evals: ${existingRuns} existing run${existingRuns === 1 ? "" : "s"} — watching for changes.`,
+        `tsevals: ${existingRuns} existing run${existingRuns === 1 ? "" : "s"} — watching for changes.`,
       );
     }
 
@@ -253,11 +253,11 @@ const devCommand = defineCommand({
       try {
         do {
           queued = false;
-          console.log("typed-evals: running…");
+          console.log("tsevals: running…");
           await runOnce({ dbPath });
         } while (queued);
       } catch (err) {
-        console.error("typed-evals: run failed:", err);
+        console.error("tsevals: run failed:", err);
       } finally {
         running = false;
       }
@@ -269,7 +269,7 @@ const devCommand = defineCommand({
     }
 
     const evalFile = /\.eval\.(c|m)?[jt]sx?$/;
-    const ignore = /(^|\/)(node_modules|dist|dist-ui|\.typed-evals|\.git)(\/|$)/;
+    const ignore = /(^|\/)(node_modules|dist|dist-ui|\.tsevals|\.git)(\/|$)/;
 
     try {
       const watcher = watch(cwd, { recursive: true });
@@ -280,7 +280,7 @@ const devCommand = defineCommand({
         schedule();
       }
     } catch (err) {
-      console.error("typed-evals: watcher error:", err);
+      console.error("tsevals: watcher error:", err);
       process.exit(1);
     }
   },
@@ -288,7 +288,7 @@ const devCommand = defineCommand({
 
 const main = defineCommand({
   meta: {
-    name: "typed-evals",
+    name: "tsevals",
     version: "0.0.1",
     description: "TypeScript evals: run, inspect, compare.",
   },

@@ -27,7 +27,7 @@ export function App() {
         <p>
           run{" "}
           <code className="bg-elevated px-2 py-1 rounded font-mono text-[12.5px]">
-            npx typed-evals run
+            npx tsevals run
           </code>{" "}
           to populate.
         </p>

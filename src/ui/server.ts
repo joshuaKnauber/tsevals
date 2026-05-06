@@ -82,7 +82,7 @@ export async function startUiServer(options: UiServerOptions = {}): Promise<void
 
   await new Promise<void>((resolve) => {
     server.listen(port, () => {
-      console.log(`typed-evals: ui at http://localhost:${port}`);
+      console.log(`tsevals: ui at http://localhost:${port}`);
       resolve();
     });
   });

@@ -37,8 +37,8 @@ export interface EvalResult {
   durationMs: number;
 }
 
-export const EVAL_RESULT_STARTED = "typed-evals:result-started" as const;
-export const EVAL_RESULT_SUBMITTED = "typed-evals:result-submitted" as const;
+export const EVAL_RESULT_STARTED = "tsevals:result-started" as const;
+export const EVAL_RESULT_SUBMITTED = "tsevals:result-submitted" as const;
 
 export interface EvalResultStartedPayload {
   evalName: string;
